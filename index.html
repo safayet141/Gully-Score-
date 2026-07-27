@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0e2419">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gully Score">
+<title>Gully Score</title>
+<style>
+  :root {
+    color-scheme: light;
+    --pitch: #0e2419;
+    --pitch-deep: #091810;
+    --pitch-mid: #17392a;
+    --paper: #f7f2e4;
+    --paper-soft: #fffcf5;
+    --ink: #221f1a;
+    --ink-soft: #6f6858;
+    --amber: #eaa93c;
+    --amber-deep: #c8871f;
+    --ball-red: #b6392f;
+    --ball-red-bg: #f4ddd8;
+    --cream: #f4efe0;
+    --line: rgba(28,26,20,0.08);
+    --line-dark: rgba(244,239,224,0.14);
+    --radius: 12px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: 158px;
+  }
+
+  button, input { font-family: inherit; }
+
+  .mono {
+    font-family: "SF Mono", "JetBrains Mono", "Courier New", ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- Header / Scoreboard ---------- */
+  .app-header {
+    background: linear-gradient(160deg, var(--pitch), var(--pitch-deep));
+    padding: calc(16px + env(safe-area-inset-top)) 18px 16px;
+    border-radius: 0 0 20px 20px;
+    box-shadow: 0 6px 18px rgba(9,24,16,0.35);
+  }
+  .app-header h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--cream);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .app-header .tagline {
+    margin: 5px 0 0;
+    font-size: 12px;
+    color: rgba(244,239,224,0.55);
+    letter-spacing: 0.02em;
+  }
+  .scoreboard-row {
+    display: flex;
+    gap: 8px;
+  }
+  .digit-box {
+    flex: 1;
+    min-width: 0;
+    background: var(--pitch-mid);
+    border: 1px solid rgba(234,169,60,0.22);
+    border-radius: 8px;
+    padding: 9px 2px 7px;
+    text-align: center;
+    box-shadow: inset 0 1px 4px rgba(0,0,0,0.35);
+  }
+  .digit-box .num {
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--amber);
+    text-shadow: 0 0 8px rgba(234,169,60,0.4);
+    line-height: 1.1;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .digit-box .cap {
+    font-size: 8.5px;
+    letter-spacing: 0.07em;
+    color: rgba(244,239,224,0.5);
+    text-transform: uppercase;
+    margin-top: 4px;
+    font-weight: 700;
+  }
+
+  /* ---------- Layout ---------- */
+  .container { max-width: 480px; margin: 0 auto; padding: 18px 16px 10px; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+  .card {
+    background: var(--paper-soft);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px;
+    box-shadow: 0 2px 10px rgba(14,36,25,0.08);
+    margin-bottom: 14px;
+  }
+
+  .section-title {
+    font-size: 12.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink);
+    margin: 0 0 14px;
+    padding-left: 10px;
+    border-left: 3px solid var(--amber);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .section-title .muted {
+    font-weight: 600;
+    font-size: 11.5px;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--ink-soft);
+  }
+  .section-hint {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin: -8px 0 12px;
+    line-height: 1.4;
+  }
+
+  /* ---------- Inputs & Buttons ---------- */
+  input[type="text"], input[type="number"] {
+    border: 1.5px solid rgba(28,26,20,0.15);
+    background: #fffdf8;
+    color: var(--ink);
+    border-radius: 9px;
+    padding: 11px 13px;
+    font-size: 15px;
+    width: 100%;
+  }
+  input:focus { outline: none; border-color: var(--amber-deep); box-shadow: 0 0 0 3px rgba(234,169,60,0.16); }
+  input::placeholder { color: #a39c8a; }
+
+  .add-player-form { display: flex; gap: 8px; }
+
+  .btn {
+    border: none;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 12px 18px;
+    border-radius: 10px;
+    letter-spacing: 0.01em;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary { background: var(--amber); color: #2b1c04; }
+  .btn-danger { background: var(--ball-red-bg); color: var(--ball-red); }
+  .btn-block { width: 100%; }
+  button:focus-visible, input:focus-visible, .nav-btn:focus-visible {
+    outline: 2px solid var(--amber-deep);
+    outline-offset: 2px;
+  }
+
+  /* ---------- Squad tab ---------- */
+  .squad-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 0; border-bottom: 1px solid var(--line);
+  }
+  .squad-row:last-child { border-bottom: none; }
+  .squad-row .name { font-weight: 700; font-size: 15px; }
+  .squad-row .sub { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
+  .icon-btn {
+    background: var(--ball-red-bg); color: var(--ball-red);
+    border: none; border-radius: 9px; padding: 8px 11px; cursor: pointer; font-size: 13px;
+  }
+
+  /* ---------- New Match tab ---------- */
+  .match-player-row {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 12px 10px; margin: 0 -10px;
+    border-bottom: 1px solid var(--line);
+    border-radius: 8px; cursor: pointer;
+    transition: background .15s;
+  }
+  .match-player-row:last-child { border-bottom: none; }
+  .match-player-row.active { background: rgba(234,169,60,0.12); }
+  .player-info { flex: 1; min-width: 0; }
+  .player-name { font-weight: 700; font-size: 15px; padding-top: 3px; }
+  .match-player-row.active .player-name { color: var(--amber-deep); }
+  .stat-inputs { display: flex; gap: 10px; margin-top: 10px; }
+  .input-field { flex: 1; }
+  .input-label {
+    font-size: 10.5px; color: var(--ink-soft); font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;
+  }
+
+  .toggle-switch { position: relative; width: 44px; height: 25px; flex-shrink: 0; margin-top: 2px; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+  .toggle-slider {
+    position: absolute; inset: 0; background: #d9d2c1; border-radius: 999px;
+    transition: background .2s; cursor: pointer;
+  }
+  .toggle-slider::before {
+    content: ""; position: absolute; height: 19px; width: 19px; left: 3px; top: 3px;
+    background: white; border-radius: 50%; transition: transform .2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+  .toggle-switch input:checked + .toggle-slider { background: var(--amber); }
+  .toggle-switch input:checked + .toggle-slider::before { transform: translateX(19px); }
+
+  .floating-save {
+    position: fixed; left: 0; right: 0; bottom: 68px; max-width: 480px; margin: 0 auto;
+    padding: 10px 16px; background: linear-gradient(to top, var(--paper) 65%, transparent);
+    display: none; z-index: 90;
+  }
+  .floating-save.visible { display: block; }
+
+  /* ---------- Leaderboard tab ---------- */
+  .sort-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .sort-pill {
+    background: rgba(28,26,20,0.05); color: var(--ink-soft);
+    border: none; padding: 7px 14px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+    cursor: pointer;
+  }
+  .sort-pill.active { background: var(--pitch); color: var(--amber); }
+
+  .lb-item { border-bottom: 1px solid var(--line); }
+  .lb-item:last-child { border-bottom: none; }
+  .lb-card { display: flex; align-items: center; gap: 12px; padding: 12px 2px; cursor: pointer; }
+  .lb-rank {
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+    background: rgba(28,26,20,0.06); color: var(--ink-soft);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 13px;
+  }
+  .lb-rank.gold { background: rgba(234,169,60,0.2); color: var(--amber-deep); font-size: 15px; }
+  .lb-rank.silver { background: rgba(28,26,20,0.09); color: #57534a; font-size: 15px; }
+  .lb-rank.bronze { background: rgba(182,57,47,0.13); color: var(--ball-red); font-size: 15px; }
+  .lb-info { flex: 1; min-width: 0; }
+  .lb-name { font-weight: 800; font-size: 15px; }
+  .lb-sub { font-size: 11.5px; color: var(--ink-soft); margin-top: 1px; }
+  .lb-stats { display: flex; gap: 14px; text-align: center; flex-shrink: 0; }
+  .lb-stat b { display: block; font-size: 15px; color: var(--ink); }
+  .lb-stat span { font-size: 9.5px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.04em; }
+  .lb-detail {
+    display: none; padding: 2px 2px 12px 42px; font-size: 12px; color: var(--ink-soft); line-height: 1.5;
+  }
+  .lb-item.expanded .lb-detail { display: block; }
+
+  /* ---------- History tab ---------- */
+  .match-item { border-bottom: 1px solid var(--line); padding: 12px 2px; }
+  .match-item:last-child { border-bottom: none; }
+  .match-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; gap: 10px; }
+  .match-title { font-weight: 800; font-size: 14px; }
+  .match-date { font-size: 11.5px; color: var(--ink-soft); margin-top: 2px; }
+  .match-caret { font-size: 12px; color: var(--ink-soft); flex-shrink: 0; }
+  .match-detail { display: none; margin-top: 12px; }
+  .match-item.expanded .match-detail { display: block; }
+  .match-detail-row {
+    display: flex; justify-content: space-between; padding: 7px 0; font-size: 13px;
+    border-top: 1px dashed var(--line);
+  }
+  .match-detail-row:first-child { border-top: none; }
+
+  /* ---------- Shared ---------- */
+  .empty-state { text-align: center; padding: 26px 10px; color: var(--ink-soft); }
+  .empty-state .emoji { font-size: 32px; display: block; margin-bottom: 8px; }
+  .empty-state p { margin: 3px 0; font-size: 13px; }
+
+  .toast {
+    position: fixed; bottom: 92px; left: 50%; transform: translateX(-50%) translateY(14px);
+    background: var(--pitch); color: var(--cream); border: 1px solid rgba(234,169,60,0.3);
+    padding: 11px 20px; border-radius: 999px; font-size: 13px; font-weight: 700;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+    opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
+    z-index: 200; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ---------- Bottom nav ---------- */
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0; max-width: 480px; margin: 0 auto;
+    background: var(--pitch);
+    display: flex; justify-content: space-around;
+    padding: 9px 0 calc(8px + env(safe-area-inset-bottom));
+    border-top: 1px solid rgba(234,169,60,0.15);
+    z-index: 100;
+  }
+  .nav-btn {
+    background: none; border: none; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    color: rgba(244,239,224,0.5);
+    font-size: 9.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+    padding: 4px 6px 6px; flex: 1; position: relative; cursor: pointer;
+  }
+  .nav-btn .icon { font-size: 17px; filter: grayscale(1) brightness(1.6); opacity: 0.7; }
+  .nav-btn.active { color: var(--amber); }
+  .nav-btn.active .icon { filter: none; opacity: 1; }
+  .nav-btn.active::after {
+    content: ""; position: absolute; top: -9px; left: 50%; transform: translateX(-50%);
+    width: 20px; height: 2px; background: var(--amber); border-radius: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="app-header">
+    <div class="scoreboard-row" id="header-pills"></div>
+  </div>
+
+  <div class="container">
+
+    <!-- Squad Tab -->
+    <div class="tab-content" id="tab-squad">
+      <div class="card">
+        <div class="section-title">Add Player</div>
+        <div class="add-player-form">
+          <input type="text" id="new-player-name" placeholder="Player's name" onkeydown="if(event.key==='Enter') addPlayer()">
+          <button class="btn btn-primary" onclick="addPlayer()">Add</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-title">Squad <span class="muted" id="squad-count"></span></div>
+        <input type="text" id="squad-search" placeholder="Search players..." oninput="renderSquad()" style="margin-bottom:12px;">
+        <div id="squad-list"></div>
+      </div>
+      <div class="card">
+        <button class="btn btn-danger btn-block" onclick="resetAllData()">Reset All Data</button>
+      </div>
+    </div>
+
+    <!-- New Match Tab -->
+    <div class="tab-content" id="tab-match">
+      <div class="card">
+        <div class="section-title">Recording <span class="muted" id="match-number-label"></span></div>
+        <p class="section-hint">Toggle on whoever played, then enter their runs and wickets. Only toggled players count toward this match.</p>
+        <input type="text" id="match-search" placeholder="Search players..." oninput="filterMatchList()">
+        <div id="new-match-list" style="margin-top:10px;"></div>
+      </div>
+    </div>
+
+    <!-- Leaderboard Tab -->
+    <div class="tab-content" id="tab-leaderboard">
+      <div class="card">
+        <div class="section-title">Leaderboard</div>
+        <div class="sort-row">
+          <button class="sort-pill" data-key="runs" onclick="setSort('runs')">Runs</button>
+          <button class="sort-pill" data-key="wickets" onclick="setSort('wickets')">Wickets</button>
+          <button class="sort-pill" data-key="matches" onclick="setSort('matches')">Matches</button>
+        </div>
+        <div id="leaderboard-list"></div>
+      </div>
+    </div>
+
+    <!-- History Tab -->
+    <div class="tab-content" id="tab-history">
+      <div class="card">
+        <div class="section-title">Match History</div>
+        <div id="history-list"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="floating-save" id="floating-save-wrap">
+    <button class="btn btn-primary btn-block" onclick="saveMatch()">✅ Save Match</button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="bottom-nav">
+    <button class="nav-btn" data-tab="squad" onclick="switchTab('squad')"><span class="icon">👥</span>Squad</button>
+    <button class="nav-btn" data-tab="match" onclick="switchTab('match')"><span class="icon">🏏</span>Match</button>
+    <button class="nav-btn" data-tab="leaderboard" onclick="switchTab('leaderboard')"><span class="icon">🏆</span>Leaders</button>
+    <button class="nav-btn" data-tab="history" onclick="switchTab('history')"><span class="icon">🕓</span>History</button>
+  </div>
+
+<script>
+  // ---------- Storage ----------
+  // New schema keeps a running roster (players) plus a full match-by-match
+  // history, so stats can accumulate across however many matches you log.
+  const STORAGE_KEY = "balconyCricketV2";
+  const LEGACY_KEY = "cricketStatsV3"; // previous version of this app
+
+  let db = loadDB();
+  let matchDraft = {};        // in-progress "New Match" entries, kept in memory
+  let sortKey = "runs";
+  let expandedLbPlayer = null;
+  let expandedMatchIndex = null;
+
+  function loadDB() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      try { return JSON.parse(raw); } catch (e) { /* fall through */ }
+    }
+    // Migrate data from the old single-match version, if it exists,
+    // so nobody loses stats they already recorded.
+    const legacyRaw = localStorage.getItem(LEGACY_KEY);
+    if (legacyRaw) {
+      try {
+        const legacy = JSON.parse(legacyRaw);
+        const migrated = { players: {}, history: [] };
+        for (const name in legacy) {
+          migrated.players[name] = {
+            runs: legacy[name].runs || 0,
+            wickets: legacy[name].wickets || 0,
+            matches: 0
+          };
+        }
+        return migrated;
+      } catch (e) { /* fall through */ }
+    }
+    return { players: {}, history: [] };
+  }
+
+  function saveDB() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+  // Safe to drop into a single-quoted JS string that itself sits inside a double-quoted HTML attribute
+  function escAttr(str) {
+    return String(str).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+  }
+
+  // ---------- Tabs ----------
+  function switchTab(tab) {
+    document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
+    document.getElementById("tab-" + tab).classList.add("active");
+    document.querySelectorAll(".nav-btn").forEach(btn => {
+      btn.classList.toggle("active", btn.getAttribute("data-tab") === tab);
+    });
+    document.getElementById("floating-save-wrap").classList.toggle("visible", tab === "match");
+  }
+
+  // ---------- Header scoreboard ----------
+  function renderHeader() {
+    const players = Object.values(db.players);
+    const totalRuns = players.reduce((s, p) => s + p.runs, 0);
+    const totalWickets = players.reduce((s, p) => s + p.wickets, 0);
+    document.getElementById("header-pills").innerHTML = `
+      <div class="digit-box"><span class="num mono">${Object.keys(db.players).length}</span><span class="cap">Players</span></div>
+      <div class="digit-box"><span class="num mono">${db.history.length}</span><span class="cap">Matches</span></div>
+      <div class="digit-box"><span class="num mono">${totalRuns}</span><span class="cap">Runs</span></div>
+      <div class="digit-box"><span class="num mono">${totalWickets}</span><span class="cap">Wickets</span></div>
+    `;
+  }
+
+  // ---------- Squad tab ----------
+  function addPlayer() {
+    const input = document.getElementById("new-player-name");
+    const name = input.value.trim();
+    if (!name) { showToast("Type a name first"); return; }
+    if (db.players[name]) { showToast("That player already exists"); return; }
+
+    db.players[name] = { runs: 0, wickets: 0, matches: 0 };
+    saveDB();
+    input.value = "";
+    renderSquad();
+    renderNewMatch();
+    renderLeaderboard();
+    renderHeader();
+    showToast(`${name} added to squad`);
+  }
+
+  function removePlayer(name) {
+    if (!confirm(`Remove ${name}? Their career stats will be deleted. Past match history will still show their name.`)) return;
+    delete db.players[name];
+    delete matchDraft[name];
+    saveDB();
+    renderSquad();
+    renderNewMatch();
+    renderLeaderboard();
+    renderHeader();
+  }
+
+  function renderSquad() {
+    const listEl = document.getElementById("squad-list");
+    const countEl = document.getElementById("squad-count");
+    const search = (document.getElementById("squad-search")?.value || "").toLowerCase();
+    const allNames = Object.keys(db.players);
+    const names = allNames.filter(n => n.toLowerCase().includes(search));
+    countEl.textContent = `(${allNames.length})`;
+
+    if (allNames.length === 0) {
+      listEl.innerHTML = `<div class="empty-state"><span class="emoji">🏏</span><p>No players yet.</p><p>Add your first player above to get started.</p></div>`;
+      return;
+    }
+    if (names.length === 0) {
+      listEl.innerHTML = `<div class="empty-state"><p>No players match "${escapeHtml(search)}"</p></div>`;
+      return;
+    }
+    listEl.innerHTML = names.map(name => {
+      const p = db.players[name];
+      return `
+        <div class="squad-row">
+          <div>
+            <div class="name">${escapeHtml(name)}</div>
+            <div class="sub mono">${p.matches} matches &middot; ${p.runs} runs &middot; ${p.wickets} wkts</div>
+          </div>
+          <button class="icon-btn" onclick="removePlayer('${escAttr(name)}')">Remove</button>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function resetAllData() {
+    if (!confirm("This permanently deletes every player, stat, and match. Continue?")) return;
+    if (!confirm("Are you absolutely sure? This can't be undone.")) return;
+    db = { players: {}, history: [] };
+    matchDraft = {};
+    saveDB();
+    renderAll();
+    switchTab("squad");
+    showToast("All data cleared");
+  }
+
+  // ---------- New Match tab ----------
+  function renderNewMatch() {
+    document.getElementById("match-number-label").textContent = `Match #${db.history.length + 1}`;
+    const listEl = document.getElementById("new-match-list");
+    const names = Object.keys(db.players);
+
+    if (names.length === 0) {
+      listEl.innerHTML = `<div class="empty-state"><span class="emoji">👥</span><p>No players in your squad yet.</p><p>Add players from the Squad tab first.</p></div>`;
+      return;
+    }
+    listEl.innerHTML = names.map(name => {
+      const d = matchDraft[name] || { played: false, runs: "", wickets: "" };
+      return `
+        <div class="match-player-row ${d.played ? "active" : ""}" data-player="${escapeHtml(name)}" onclick="handleRowClick(event,'${escAttr(name)}')">
+          <label class="toggle-switch" onclick="event.stopPropagation()">
+            <input type="checkbox" ${d.played ? "checked" : ""} onchange="onTogglePlayed('${escAttr(name)}', this)">
+            <span class="toggle-slider"></span>
+          </label>
+          <div class="player-info">
+            <div class="player-name">${escapeHtml(name)}</div>
+            <div class="stat-inputs" style="display:${d.played ? "flex" : "none"}">
+              <div class="input-field">
+                <span class="input-label">Runs</span>
+                <input type="number" min="0" inputmode="numeric" value="${d.runs}" onclick="event.stopPropagation()" oninput="onDraftInput('${escAttr(name)}','runs',this.value)">
+              </div>
+              <div class="input-field">
+                <span class="input-label">Wickets</span>
+                <input type="number" min="0" inputmode="numeric" value="${d.wickets}" onclick="event.stopPropagation()" oninput="onDraftInput('${escAttr(name)}','wickets',this.value)">
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function handleRowClick(evt, name) {
+    if (evt.target.closest(".stat-inputs") || evt.target.closest(".toggle-switch")) return;
+    const row = evt.currentTarget;
+    const checkbox = row.querySelector(".toggle-switch input");
+    checkbox.checked = !checkbox.checked;
+    onTogglePlayed(name, checkbox);
+  }
+
+  function onTogglePlayed(name, checkbox) {
+    if (!matchDraft[name]) matchDraft[name] = { played: false, runs: "", wickets: "" };
+    matchDraft[name].played = checkbox.checked;
+    const row = checkbox.closest(".match-player-row");
+    row.classList.toggle("active", checkbox.checked);
+    row.querySelector(".stat-inputs").style.display = checkbox.checked ? "flex" : "none";
+  }
+
+  function onDraftInput(name, field, value) {
+    if (!matchDraft[name]) matchDraft[name] = { played: false, runs: "", wickets: "" };
+    matchDraft[name][field] = value;
+  }
+
+  function filterMatchList() {
+    const q = document.getElementById("match-search").value.toLowerCase();
+    document.querySelectorAll("#new-match-list .match-player-row").forEach(row => {
+      const name = row.getAttribute("data-player").toLowerCase();
+      row.style.display = name.includes(q) ? "flex" : "none";
+    });
+  }
+
+  function saveMatch() {
+    const playedNames = Object.keys(db.players).filter(n => matchDraft[n] && matchDraft[n].played);
+    if (playedNames.length === 0) {
+      showToast("Toggle on at least one player who played");
+      return;
+    }
+    const entries = playedNames.map(name => {
+      const runs = parseInt(matchDraft[name].runs) || 0;
+      const wickets = parseInt(matchDraft[name].wickets) || 0;
+      db.players[name].runs += runs;
+      db.players[name].wickets += wickets;
+      db.players[name].matches += 1;
+      return { name, runs, wickets };
+    });
+    db.history.push({ timestamp: Date.now(), entries });
+    matchDraft = {};
+    saveDB();
+    const matchNum = db.history.length;
+    renderAll();
+    showToast(`Match #${matchNum} saved`);
+  }
+
+  // ---------- Leaderboard tab ----------
+  function setSort(key) {
+    sortKey = key;
+    renderLeaderboard();
+  }
+
+  function renderLeaderboard() {
+    document.querySelectorAll(".sort-pill").forEach(btn => {
+      btn.classList.toggle("active", btn.getAttribute("data-key") === sortKey);
+    });
+    const listEl = document.getElementById("leaderboard-list");
+    const names = Object.keys(db.players);
+
+    if (names.length === 0) {
+      listEl.innerHTML = `<div class="empty-state"><span class="emoji">🏆</span><p>No stats yet.</p><p>Add players and save a match to build the leaderboard.</p></div>`;
+      return;
+    }
+
+    const rows = names.map(name => ({ name, ...db.players[name] }));
+    rows.sort((a, b) => b[sortKey] - a[sortKey] || a.name.localeCompare(b.name));
+
+    listEl.innerHTML = rows.map((p, i) => {
+      const rankClass = i === 0 ? "gold" : i === 1 ? "silver" : i === 2 ? "bronze" : "";
+      const rankLabel = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : (i + 1);
+      const isExpanded = expandedLbPlayer === p.name;
+
+      let bestRuns = 0, bestWkts = 0;
+      db.history.forEach(m => {
+        m.entries.forEach(e => {
+          if (e.name === p.name) {
+            if (e.runs > bestRuns) bestRuns = e.runs;
+            if (e.wickets > bestWkts) bestWkts = e.wickets;
+          }
+        });
+      });
+      const avgRuns = p.matches > 0 ? (p.runs / p.matches).toFixed(1) : "0.0";
+      const avgWkts = p.matches > 0 ? (p.wickets / p.matches).toFixed(1) : "0.0";
+
+      return `
+        <div class="lb-item ${isExpanded ? "expanded" : ""}">
+          <div class="lb-card" onclick="toggleLbDetail('${escAttr(p.name)}')">
+            <div class="lb-rank ${rankClass}">${rankLabel}</div>
+            <div class="lb-info">
+              <div class="lb-name">${escapeHtml(p.name)}</div>
+              <div class="lb-sub">${p.matches} match${p.matches === 1 ? "" : "es"} played</div>
+            </div>
+            <div class="lb-stats">
+              <div class="lb-stat"><b class="mono">${p.runs}</b><span>Runs</span></div>
+              <div class="lb-stat"><b class="mono">${p.wickets}</b><span>Wkts</span></div>
+            </div>
+          </div>
+          <div class="lb-detail">
+            Avg <span class="mono">${avgRuns}</span> runs/match &middot; Avg <span class="mono">${avgWkts}</span> wkts/match<br>
+            Best innings: <span class="mono">${bestRuns}</span> runs &middot; Best bowling: <span class="mono">${bestWkts}</span> wkts
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function toggleLbDetail(name) {
+    expandedLbPlayer = expandedLbPlayer === name ? null : name;
+    renderLeaderboard();
+  }
+
+  // ---------- History tab ----------
+  function renderHistory() {
+    const listEl = document.getElementById("history-list");
+    if (db.history.length === 0) {
+      listEl.innerHTML = `<div class="empty-state"><span class="emoji">🕓</span><p>No matches recorded yet.</p><p>Save your first match from the Match tab.</p></div>`;
+      return;
+    }
+    const numbered = db.history.map((m, i) => ({ ...m, matchNumber: i + 1, origIndex: i }));
+    const reversed = [...numbered].reverse();
+
+    listEl.innerHTML = reversed.map(m => {
+      const isExpanded = expandedMatchIndex === m.origIndex;
+      const dateStr = new Date(m.timestamp).toLocaleString(undefined, {
+        day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"
+      });
+      const topScorer = [...m.entries].sort((a, b) => b.runs - a.runs)[0];
+      return `
+        <div class="match-item ${isExpanded ? "expanded" : ""}">
+          <div class="match-header" onclick="toggleMatchDetail(${m.origIndex})">
+            <div>
+              <div class="match-title">Match #${m.matchNumber}</div>
+              <div class="match-date">${dateStr} &middot; ${m.entries.length} player${m.entries.length === 1 ? "" : "s"}</div>
+            </div>
+            <div class="match-caret">${isExpanded ? "▲" : "▼"}</div>
+          </div>
+          <div class="match-detail">
+            ${m.entries.map(e => `
+              <div class="match-detail-row">
+                <span>${escapeHtml(e.name)}${topScorer && e.name === topScorer.name && topScorer.runs > 0 ? " 🏅" : ""}</span>
+                <span class="mono">${e.runs} runs &middot; ${e.wickets} wkts</span>
+              </div>
+            `).join("")}
+            <button class="btn btn-danger btn-block" style="margin-top:12px;" onclick="deleteMatch(${m.origIndex})">Delete This Match</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function toggleMatchDetail(index) {
+    expandedMatchIndex = expandedMatchIndex === index ? null : index;
+    renderHistory();
+  }
+
+  function deleteMatch(index) {
+    if (!confirm("Delete this match? Every player's totals will be adjusted to remove it.")) return;
+    const match = db.history[index];
+    match.entries.forEach(e => {
+      if (db.players[e.name]) {
+        db.players[e.name].runs -= e.runs;
+        db.players[e.name].wickets -= e.wickets;
+        db.players[e.name].matches -= 1;
+      }
+    });
+    db.history.splice(index, 1);
+    expandedMatchIndex = null;
+    saveDB();
+    renderAll();
+    showToast("Match deleted");
+  }
+
+  // ---------- Toast ----------
+  let toastTimer = null;
+  function showToast(msg) {
+    const el = document.getElementById("toast");
+    el.textContent = msg;
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove("show"), 2200);
+  }
+
+  // ---------- Init ----------
+  function renderAll() {
+    renderHeader();
+    renderSquad();
+    renderNewMatch();
+    renderLeaderboard();
+    renderHistory();
+  }
+
+  renderAll();
+  switchTab(Object.keys(db.players).length === 0 ? "squad" : "match");
+</script>
+</body>
+</html>
