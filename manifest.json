@@ -1,7 +1,15 @@
-"icons": [
-  {
-    "src": "logo.png",
-    "sizes": "512x512",
-    "type": "image/png"
-  }
-]
+{
+  "name": "Gully Score",
+  "short_name": "Gully",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0e2419",
+  "theme_color": "#0e2419",
+  "icons": [
+    {
+      "src": "logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
